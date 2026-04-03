@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coletor de Informações do Navegador</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1877f2 0%, #0c5d9e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #1877f2;
+        }
+        
+        .info-card h3 {
+            color: #1877f2;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .info-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            width: 150px;
+            color: #495057;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #212529;
+            word-break: break-all;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #1877f2 0%, #0c5d9e 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.success {
+            display: block;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            display: block;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1877f2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: center;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍪 Coletor de Informações</h1>
+            <p>Clique no botão para enviar dados do navegador e cookies</p>
+        </div>
+        
+        <div class="content">
+            <div class="info-card">
+                <h3>📋 Informações que serão coletadas:</h3>
+                <div class="info-row">
+                    <div class="info-label">User Agent:</div>
+                    <div class="info-value" id="userAgentPreview">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Idioma:</div>
+                    <div class="info-value" id="languagePreview">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Resolução:</div>
+                    <div class="info-value" id="resolutionPreview">-</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Cookies:</div>
+                    <div class="info-value" id="cookiesPreview">-</div>
+                </div>
+            </div>
+            
+            <button id="coletarBtn">🔍 Coletar e Enviar Dados</button>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 10px;">Enviando dados...</p>
+            </div>
+            
+            <div id="resultado" class="result"></div>
+        </div>
+        
+        <div class="footer">
+            <p>⚠️ Apenas para fins educacionais | Os dados são enviados para o servidor</p>
+        </div>
+    </div>
+
+    <script>
+        // Função para obter todos os cookies
+        function getAllCookies() {
+            const cookies = {};
+            document.cookie.split(';').forEach(cookie => {
+                const [key, value] = cookie.trim().split('=');
+                if (key) cookies[key] = decodeURIComponent(value || '');
+            });
+            return cookies;
+        }
+        
+        // Função para obter informações do navegador
+        function getBrowserInfo() {
+            const ua = navigator.userAgent;
+            const browser = {
+                name: '',
+                version: ''
+            };
+            
+            // Detecta navegador
+            if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1) {
+                browser.name = 'Chrome';
+                browser.version = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Desconhecido';
+            } else if (ua.indexOf('Firefox') > -1) {
+                browser.name = 'Firefox';
+                browser.version = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Desconhecido';
+            } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
+                browser.name = 'Safari';
+                browser.version = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Desconhecido';
+            } else if (ua.indexOf('Edg') > -1) {
+                browser.name = 'Edge';
+                browser.version = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Desconhecido';
+            } else {
+                browser.name = 'Outro';
+                browser.version = 'Desconhecido';
+            }
+            
+            return browser;
+        }
+        
+        // Função para obter fingerprint do navegador
+        function getFingerprint() {
+            const data = {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                languages: navigator.languages,
+                platform: navigator.platform,
+                hardwareConcurrency: navigator.hardwareConcurrency || 'Desconhecido',
+                deviceMemory: navigator.deviceMemory || 'Desconhecido',
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                screenResolution: `${screen.width}x${screen.height}`,
+                colorDepth: screen.colorDepth,
+                touchSupport: 'ontouchstart' in window,
+                doNotTrack: navigator.doNotTrack,
+                cookiesEnabled: navigator.cookieEnabled,
+                localStorage: typeof localStorage !== 'undefined',
+                sessionStorage: typeof sessionStorage !== 'undefined'
+            };
+            return data;
+        }
+        
+        // Função para obter geolocalização (requer permissão)
+        async function getGeolocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve(null);
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    () => resolve(null),
+                    { timeout: 5000 }
+                );
+            });
+        }
+        
+        // Atualiza preview das informações
+        function updatePreview() {
+            const cookies = getAllCookies();
+            const cookiesCount = Object.keys(cookies).length;
+            document.getElementById('userAgentPreview').textContent = navigator.userAgent.substring(0, 50) + '...';
+            document.getElementById('languagePreview').textContent = navigator.language;
+            document.getElementById('resolutionPreview').textContent = `${screen.width}x${screen.height}`;
+            document.getElementById('cookiesPreview').textContent = `${cookiesCount} cookie(s) encontrados`;
+        }
+        
+        // Envia dados para o servidor
+        async function enviarDados() {
+            const botao = document.getElementById('coletarBtn');
+            const loading = document.getElementById('loading');
+            const resultado = document.getElementById('resultado');
+            
+            // Desabilita botão e mostra loading
+            botao.disabled = true;
+            loading.classList.add('active');
+            resultado.className = 'result';
+            resultado.style.display = 'none';
+            
+            try {
+                // Coleta todos os dados
+                const cookies = getAllCookies();
+                const browserInfo = getBrowserInfo();
+                const fingerprint = getFingerprint();
+                
+                // Coleta geolocalização (opcional)
+                const geolocation = await getGeolocation();
+                
+                // Monta payload
+                const payload = {
+                    timestamp: new Date().toISOString(),
+                    url: window.location.href,
+                    referrer: document.referrer,
+                    cookies: cookies,
+                    browser: browserInfo,
+                    fingerprint: fingerprint,
+                    geolocation: geolocation,
+                    localStorage: { ...localStorage },
+                    sessionStorage: { ...sessionStorage }
+                };
+                
+                // Envia para o servidor
+                const response = await fetch('coletor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                // Exibe resultado
+                resultado.className = 'result success';
+                resultado.style.display = 'block';
+                resultado.innerHTML = `
+                    <strong>✅ ${data.message}</strong>
+                    <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                `;
+                
+                console.log('Dados enviados com sucesso:', data);
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                resultado.className = 'result error';
+                resultado.style.display = 'block';
+                resultado.innerHTML = `
+                    <strong>❌ Erro ao enviar dados</strong>
+                    <p>${error.message}</p>
+                `;
+            } finally {
+                // Reabilita botão e esconde loading
+                botao.disabled = false;
+                loading.classList.remove('active');
+            }
+        }
+        
+        // Event listener quando o DOM carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePreview();
+            
+            const botao = document.getElementById('coletarBtn');
+            if (botao) {
+                botao.addEventListener('click', enviarDados);
+            }
+        });
+        
+        // Também coleta ao carregar a página (opcional)
+        // enviarDados(); // Descomente para enviar automaticamente
+    </script>
+</body>
+</html>
